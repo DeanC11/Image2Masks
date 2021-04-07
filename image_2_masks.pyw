@@ -15,6 +15,7 @@ class MainWindow(QMainWindow):
         # set window options
         self.setWindowTitle('Image 2 Masks')
         self.setWindowIcon(QIcon('images/mask_icon.ico'))
+        self.setMinimumSize(400, 275)
 
         # define class-wide variables
         self.image_chosen: bool = False
@@ -31,7 +32,6 @@ class MainWindow(QMainWindow):
         # create the top layout
         top_layout = QHBoxLayout()
         top_layout.addWidget(self.image_label, Qt.AlignLeft)
-        # top_layout.addSpacing(50)
         top_layout.addWidget(image_button, 100, Qt.AlignRight)
 
         # width input elements
@@ -58,18 +58,28 @@ class MainWindow(QMainWindow):
         height_layout.addWidget(height_label, alignment=Qt.AlignLeft)
         height_layout.addWidget(self.height_field, 1, alignment=Qt.AlignLeft)
 
-        # middle elements
+        # image options elements
+        self.save_bmp_checkbox = QCheckBox('Save a copy as BMP')
+        self.custom_palette_checkbox = QCheckBox('Use custom colours')
+        self.custom_palette_checkbox.stateChanged.connect(self.image_options)
+        # create image options layout
+        image_options_layout = QHBoxLayout()
+        image_options_layout.addWidget(self.save_bmp_checkbox, alignment=Qt.AlignLeft)
+        image_options_layout.addSpacing(5)
+        image_options_layout.addWidget(self.custom_palette_checkbox, alignment=Qt.AlignLeft)
+
+        # middle layout elements
         self.keep_aspect_checkbox = QCheckBox('Keep aspect ratio')
         self.keep_aspect_checkbox.stateChanged.connect(self.calculate_image_size)
         # create the middle layout
-        v_layout = QVBoxLayout()
-        v_layout.addSpacing(20)  # use instead min window height
-        v_layout.addLayout(width_layout)
-        v_layout.addSpacing(5)
-        v_layout.addLayout(height_layout)
-        v_layout.addSpacing(10)
-        v_layout.addWidget(self.keep_aspect_checkbox, alignment=Qt.AlignLeft)
-        v_layout.addSpacing(20)  # use instead min window height
+        middle_layout = QVBoxLayout()
+        middle_layout.addLayout(width_layout)
+        middle_layout.addSpacing(5)
+        middle_layout.addLayout(height_layout)
+        middle_layout.addSpacing(10)
+        middle_layout.addWidget(self.keep_aspect_checkbox, alignment=Qt.AlignLeft)
+        middle_layout.addSpacing(5)
+        middle_layout.addLayout(image_options_layout)
 
         # bottom elements
         create_button = QPushButton('Create Masks')
@@ -86,7 +96,7 @@ class MainWindow(QMainWindow):
         # create the main layout
         main_layout = QGridLayout()
         main_layout.addLayout(top_layout, 0, 0, Qt.AlignTop)
-        main_layout.addLayout(v_layout, 1, 0)
+        main_layout.addLayout(middle_layout, 1, 0)
         main_layout.addLayout(bottom_layout, 2, 0, Qt.AlignBottom)
 
         widget = QWidget()
@@ -112,6 +122,13 @@ class MainWindow(QMainWindow):
             self.width_field.setValue(self.image_width)
             self.height_field.setValue(self.image_height)
 
+    def save_bmp(self, image: Image):
+        filename, _ = QFileDialog.getSaveFileName(self, "Save As BMP", filter="256 Colour Bitmap (*.bmp)")
+
+        if filename:
+            new_image = image.convert("P", colors=256)
+            new_image.save(filename)
+
     def width_edited(self):
         if self.image_chosen:
             self.image_width = self.width_field.value()
@@ -130,7 +147,7 @@ class MainWindow(QMainWindow):
 
     def calculate_image_size(self, width_changed_last: bool = True):
         if self.image_chosen:
-            if self.keep_aspect_checkbox.checkState():
+            if self.keep_aspect_checkbox.isChecked():
                 if width_changed_last:
                     self.image_height = round(self.image_width / self.image_aspect_ratio)
                     self.height_field.setValue(self.image_height)
@@ -138,10 +155,22 @@ class MainWindow(QMainWindow):
                     self.image_width = round(self.image_height * self.image_aspect_ratio)
                     self.width_field.setValue(self.image_width)
 
+    def image_options(self):
+        if self.custom_palette_checkbox.isChecked() and not self.save_bmp_checkbox.isChecked():
+            self.save_bmp_checkbox.setChecked(True)
+
     def create_pressed(self):
         if self.image_chosen:
-            process_image(self.image, self.image_width, self.image_height)
+            # process the image and create masks
+            resized_image, converted_image = process_image(self.image, self.image_width, self.image_height)
+            create_masks(resized_image, converted_image)
             self.create_label.setText("Masks copied to clipboard!")
+            # save a copy as BMP if specified by user
+            if self.save_bmp_checkbox.isChecked():
+                if self.custom_palette_checkbox.isChecked():
+                    self.save_bmp(converted_image)
+                else:
+                    self.save_bmp(resized_image)
         else:
             self.create_label.setText('No image was chosen')
 
@@ -191,7 +220,8 @@ def process_image(image: Image, width: int, height: int):
     pal_image.putpalette(palette)
 
     converted_image = resized_image.convert("RGB").quantize(palette=pal_image, dither=0)
-    create_masks(resized_image, converted_image)
+
+    return resized_image, converted_image
 
 
 def create_masks(resized_image: Image, converted_image: Image):
