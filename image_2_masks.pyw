@@ -4,8 +4,8 @@ import pyperclip
 from PIL import Image
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QFileDialog, QLabel, QPushButton, QSpinBox, QCheckBox,
-                             QHBoxLayout, QVBoxLayout, QGridLayout)
+from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QFileDialog, QLabel, QPushButton, QSpinBox,
+                             QCheckBox, QHBoxLayout, QVBoxLayout, QGridLayout)
 
 
 class MainWindow(QMainWindow):
@@ -14,8 +14,8 @@ class MainWindow(QMainWindow):
 
         # set window options
         self.setWindowTitle('Image 2 Masks')
-        self.setWindowIcon(QIcon('images/mask_icon.ico'))
-        self.setMinimumSize(400, 275)
+        self.setWindowIcon(QIcon('./images/mask_icon.ico'))
+        self.setMinimumSize(400, 255)
 
         # define class-wide variables
         self.image_chosen: bool = False
@@ -25,7 +25,7 @@ class MainWindow(QMainWindow):
         self.image_aspect_ratio = 0
 
         # top elements
-        image_button = QPushButton('Browse')
+        image_button = QPushButton('&Browse')
         image_button.clicked.connect(self.browse_images)
         image_button.setStyleSheet("width: 100px;")
         self.image_label = QLabel('Please choose an image')
@@ -59,8 +59,8 @@ class MainWindow(QMainWindow):
         height_layout.addWidget(self.height_field, 1, alignment=Qt.AlignLeft)
 
         # image options elements
-        self.save_bmp_checkbox = QCheckBox('Save a copy as BMP')
-        self.custom_palette_checkbox = QCheckBox('Use custom colours')
+        self.save_bmp_checkbox = QCheckBox('&Save a copy as BMP')
+        self.custom_palette_checkbox = QCheckBox('&Use custom colours')
         self.custom_palette_checkbox.stateChanged.connect(self.image_options)
         # create image options layout
         image_options_layout = QHBoxLayout()
@@ -69,7 +69,7 @@ class MainWindow(QMainWindow):
         image_options_layout.addWidget(self.custom_palette_checkbox, alignment=Qt.AlignLeft)
 
         # middle layout elements
-        self.keep_aspect_checkbox = QCheckBox('Keep aspect ratio')
+        self.keep_aspect_checkbox = QCheckBox('&Keep aspect ratio')
         self.keep_aspect_checkbox.stateChanged.connect(self.calculate_image_size)
         # create the middle layout
         middle_layout = QVBoxLayout()
@@ -78,11 +78,10 @@ class MainWindow(QMainWindow):
         middle_layout.addLayout(height_layout)
         middle_layout.addSpacing(10)
         middle_layout.addWidget(self.keep_aspect_checkbox, alignment=Qt.AlignLeft)
-        middle_layout.addSpacing(5)
         middle_layout.addLayout(image_options_layout)
 
         # bottom elements
-        create_button = QPushButton('Create Masks')
+        create_button = QPushButton('&Create Masks')
         create_button.clicked.connect(self.create_pressed)
         create_button.setStyleSheet("width: 140px;")
         self.create_label = QLabel()
@@ -126,7 +125,7 @@ class MainWindow(QMainWindow):
         filename, _ = QFileDialog.getSaveFileName(self, "Save As BMP", filter="256 Colour Bitmap (*.bmp)")
 
         if filename:
-            new_image = image.convert("P", colors=256)
+            new_image = image.quantize(colors=256, method=0, dither=0)
             new_image.save(filename)
 
     def width_edited(self):
@@ -165,12 +164,13 @@ class MainWindow(QMainWindow):
             resized_image, converted_image = process_image(self.image, self.image_width, self.image_height)
             create_masks(resized_image, converted_image)
             self.create_label.setText("Masks copied to clipboard!")
+
             # save a copy as BMP if specified by user
             if self.save_bmp_checkbox.isChecked():
                 if self.custom_palette_checkbox.isChecked():
-                    self.save_bmp(converted_image)
-                else:
                     self.save_bmp(resized_image)
+                else:
+                    self.save_bmp(converted_image)
         else:
             self.create_label.setText('No image was chosen')
 
