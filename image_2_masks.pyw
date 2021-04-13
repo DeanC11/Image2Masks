@@ -311,9 +311,9 @@ def create_masks(resized_image: Image, converted_image: Image):
             for x in range(0, resized_image.width):
                 pixel = resized_image.getpixel((x, y))
                 if pixel[3] == 0:
-                    screen_mask += ' 00h,'
-                else:
                     screen_mask += '0FFh,'
+                else:
+                    screen_mask += ' 00h,'
 
             screen_mask = screen_mask[:-1]  # remove last comma from each row
             screen_mask += new_line  # add new line
