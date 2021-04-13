@@ -125,7 +125,7 @@ class MainWindow(QMainWindow):
         filename, _ = QFileDialog.getSaveFileName(self, "Save As BMP", filter="256 Colour Bitmap (*.bmp)")
 
         if filename:
-            new_image = image.quantize(colors=256, method=0, dither=0)
+            new_image = image.convert("RGB", dither=0).quantize(colors=256, method=0, dither=0)
             new_image.save(filename)
 
     def width_edited(self):
