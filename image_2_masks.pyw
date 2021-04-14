@@ -125,8 +125,8 @@ class MainWindow(QMainWindow):
         filename, _ = QFileDialog.getSaveFileName(self, "Save As BMP", filter="256 Colour Bitmap (*.bmp)")
 
         if filename:
-            new_image = image.convert("RGB", dither=0).quantize(colors=256, method=0, dither=0)
-            new_image.save(filename)
+            new_image = image.quantize(colors=256, dither=0)
+            new_image.save(filename, 'bmp')
 
     def width_edited(self):
         if self.image_chosen:
@@ -320,7 +320,7 @@ def create_masks(resized_image: Image, converted_image: Image):
     else:
         for y in range(0, resized_image.height):
             for x in range(0, resized_image.width):
-                screen_mask += '0FFh,'
+                screen_mask += ' 00h,'
 
             screen_mask = screen_mask[:-1]  # remove last comma from each row
             screen_mask += new_line  # add new line
